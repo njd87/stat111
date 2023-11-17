@@ -6,7 +6,7 @@ This library was created as an educational tool for understanding how the concep
 
 This is a list of procedures/ideas that are planned to be added:
 
-- [ ] Add general Likelihood Calculations
+- [x] Add general Likelihood Calculations
 - [ ] Add specific Likelihood Calculations for common distributions
 - [ ] 
 - [ ] 

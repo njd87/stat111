@@ -4,82 +4,91 @@ from scipy.optimize import minimize_scalar
 from constants import distributions
 
 
-def likelihood_iid(data: any, likelihood) -> float:
-    """
-    Calculate the likelihood of a given array of iid data
+"""
+TODO: Add docstring
+"""
+class MLE():
     
-    Parameters:
-    -----------
-    data : any
-        The data to calculate the likelihood for. Should be an interable object (list, np.array, etc.)
-        ***Try to keep data under around 200 observations for general purpose simulation.***
-    likelihood: function
-        The likelihood function should have the following structure:
+    def __init__(self, data: any):
+        self.data = data
+        self.estimate = None
 
-        def l(y, theta):
-            return ...
+        # TODO: scale data to allow for better predictions
+
+    def iid(self, likelihood) -> float:
+        """
+        Calculate the MLE of a given array of iid data
+        ***Try to keep data under around 100 observations for general purpose simulation.***
         
-        With "y" the parameter of the observed value and "theta" the paramter of the estimand
+        Parameters:
+        -----------
+        likelihood: function
+            The likelihood function should have the following structure:
+
+            def l(y, theta):
+                return ...
+            
+            With "y" the parameter of the observed value and "theta" the paramter of the estimand
+            
+        Returns:
+        --------
+        float
+            The likelihood of the specified parameter
+        """
+
+        # create a new function to maximize over theta
+
+        def likelihood_max(theta):
+            s = 1
+
+            for observation in self.data:
+                s *= likelihood(observation, theta)
+            
+            return s
         
-    Returns:
-    --------
-    float
-        The likelihood of the specified parameter
-    """
-
-    # create a new function to maximize over theta
-
-    def likelihood_max(theta):
-        s = 1
-
-        for observation in data:
-            s *= likelihood(observation, theta)
-        
-        return s
+        # use scipy.optimize to find the maximum of likelihood_max
+        # return the arg min (that is, return the "theta" that generates the maximum value)
+        theta = minimize_scalar(lambda theta: -likelihood_max(theta))
+        self.estimate = theta.x
+        return self.estimate
     
-    # use scipy.optimize to find the maximum of likelihood_max
-    # return the arg min (that is, return the "theta" that generates the maximum value)
-    theta = minimize_scalar(lambda theta: -likelihood_max(theta))
-    return theta.x
+    def iid_common(self, distribution: str, parameter: str, given: float = None) -> float:
+        """
+        Calculate the likelihood from common distributions. Distributions and parameters include:
+
+        normal -- mu, sigma
+        exponential -- lambda
+        weibull -- lambda, gamma
+        gamma -- alpha, lambda
+        beta -- alpha, beta
+        lognormal -- mu, sigma
+        cauchy -- loc, gamma
+
+        Parameters:
+        ---------
+        distribution: name of common distribution
+
+        parameters: list
+            parameter you wish to estimate
+
+        given: float, default None
+            For the gamma and weibull distributions, there is only closed form solutions for beta and lambda respectively.
+            So, provide:
+
+            alpha -> Gamma
+            gamma -> Weibull
+        """
+        # check to make sure distribution is valid
+        if distribution not in distributions:
+            raise ValueError('Distribution not included')
     
 
-def likelihood_common(data: any, distribution: str, parameters: list):
-    """
-    Calculate the likelihood from common distributions. Distributions and parameters include:
-
-    normal -- mu, sigma
-    exponential -- lambda
-    weibull -- lambda, gamma
-    gamma -- alpha, lambda
-    beta -- alpha, beta
-    lognormal -- mu, sigma
-    cauchy -- loc, gamma
-
-    Parameters:
-    ---------
-
-    data: any
-        The data to calculate the likelihood for. Should be an interable object (list, np.array, etc.)
-
-    distribution: name of common distribution
-
-    parameters: list
-        List of parameters from the distribution you wish to estimate
-    """
-
-    # check to make sure distribution is valid
-    if distribution not in distributions:
-        raise ValueError('Distribution not included')
-    
-    # create result dictionary
-    res = {}
-
-    # iterate through parameters
-    for parameter in parameters:
         # check if parameter is valid
         if parameter not in distributions[distribution]['MLE']:
-            raise ValueError(f'{parameter} not found for distribution {distribution}')
+            raise ValueError(f'{parameter} not found for MLE estimation in distribution {distribution}')
         
-        res[parameter] = distributions[distribution]['MLE'][parameter](data)
+        if distribution in {'gamma', 'weibull'}:
+            if given is None: raise ValueError(f'{parameter} estimation for {distribution} requires given (see documentation)')
+            return distributions[distributions]['MLE'][parameter](self.data, given)
 
-    return res
+        return distributions[distribution]['MLE'][parameter](self.data)
